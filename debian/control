@@ -31,8 +31,9 @@ Vcs-Browser: https://github.com/sched-ext/scx
 
 Package: scx
 Architecture: any
+Conflicts: scx-scheds
+Replaces: scx-scheds
 Depends:
- dbus,
  polkitd | policykit-1,
  systemd | init-system-helpers,
  ${shlibs:Depends},
