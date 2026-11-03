@@ -1,0 +1,60 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+CARGO ?= cargo
+BPF_CLANG ?= clang-22
+BPF_RUST_TOOLCHAIN ?= nightly
+LLVM_BIN ?= /usr/lib/llvm-22/bin
+CARGO_BUILD_JOBS ?= 2
+NATIVE ?= 1
+CARGO_TARGET_DIR := $(CURDIR)/debian/cargo-target
+
+ifeq ($(NATIVE),1)
+ifneq ($(findstring -C target-cpu=native,$(RUSTFLAGS)),)
+else
+RUSTFLAGS += -C target-cpu=native
+endif
+endif
+export RUSTFLAGS
+ifneq ($(strip $(BPF_RUST_TOOLCHAIN)),)
+export BPF_RUST_TOOLCHAIN
+endif
+ifneq ($(strip $(LLVM_BIN)),)
+export LLVM_BIN
+export PATH := $(LLVM_BIN):$(PATH)
+endif
+
+# These members are development or self-test tools and do not install a
+# runtime binary. Every scheduler and the user-facing scxcli/scxtui members
+# remain in the package build.
+CARGO_EXCLUDES := \
+	--exclude scx_arena_selftests \
+	--exclude scx_arena_libarena_selftests \
+	--exclude scx_characterize \
+	--exclude scx_forge_agent \
+	--exclude scxtop \
+	--exclude vmlinux_docify \
+	--exclude xtask
+
+%:
+	dh $@ --buildsystem=none
+
+override_dh_auto_clean:
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) $(CARGO) clean
+
+override_dh_auto_build:
+	python3 debian/sanitize-vendor-checksums.py
+	CARGO_TARGET_DIR=$(CARGO_TARGET_DIR) BPF_CLANG=$(BPF_CLANG) RUSTFLAGS="$(RUSTFLAGS)" \
+		$(CARGO) build --release --locked --offline \
+		--jobs $(CARGO_BUILD_JOBS) --workspace \
+		$(CARGO_EXCLUDES)
+
+override_dh_auto_test:
+	@:
+
+override_dh_auto_install:
+	@:
+
+override_dh_installsystemd:
+	dh_installsystemd --name=scx

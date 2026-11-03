@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""Generate DEP-5 stanzas for the exact Cargo vendor tree."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import tomllib
+
+
+BEGIN = "# BEGIN VENDORED-CRATES-COPYRIGHT"
+END = "# END VENDORED-CRATES-COPYRIGHT"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source-root", type=Path, default=Path("."))
+    root = parser.parse_args().source_root.resolve()
+    copyright_file = root / "debian" / "copyright"
+    vendor = root / "vendor"
+    if not copyright_file.is_file() or not vendor.is_dir():
+        raise SystemExit(
+            "prepared source tree must contain debian/copyright and vendor/"
+        )
+
+    stanzas = []
+    for manifest in sorted(vendor.glob("*/Cargo.toml")):
+        package = tomllib.loads(
+            manifest.read_text(encoding="utf-8")
+        ).get("package", {})
+        name = package.get("name", manifest.parent.name)
+        license_name = package.get("license")
+        if not license_name:
+            raise SystemExit(f"{manifest} does not declare package.license")
+        authors = package.get("authors") or [f"the {name} contributors"]
+        stanzas.append(
+            "Files: vendor/{}/*\nCopyright:\n {}\nLicense: {}".format(
+                manifest.parent.name,
+                "\n ".join(sorted(set(authors))),
+                license_name.replace(" OR ", " or ").replace(" AND ", " and "),
+            )
+        )
+    if not stanzas:
+        raise SystemExit("vendor/ contains no Cargo manifests")
+
+    text = copyright_file.read_text(encoding="utf-8")
+    before, marker = text.split(BEGIN, 1)
+    _, after = marker.split(END, 1)
+    copyright_file.write_text(
+        before + BEGIN + "\n" + "\n\n".join(stanzas) + "\n" + END + after,
+        encoding="utf-8",
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

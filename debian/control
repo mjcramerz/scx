@@ -1,0 +1,43 @@
+Source: scx
+Section: admin
+Priority: optional
+Maintainer: scx maintainers <scx@packages.debian.org>
+Standards-Version: 4.7.3
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cargo,
+ rustc,
+ clang-22,
+ llvm-22,
+ llvm-22-dev,
+ bpftool,
+ linux-libc-dev,
+ libbpf-dev (>= 1.4.0),
+ libelf-dev,
+ zlib1g-dev,
+ libcap-dev,
+ libseccomp-dev,
+ libssl-dev,
+ binutils-dev,
+ cmake,
+ pkgconf,
+ protobuf-compiler,
+ jq,
+ fakeroot
+Homepage: https://github.com/sched-ext/scx
+Vcs-Git: https://github.com/sched-ext/scx
+Vcs-Browser: https://github.com/sched-ext/scx
+
+Package: scx
+Architecture: any
+Depends:
+ dbus,
+ polkitd | policykit-1,
+ systemd | init-system-helpers,
+ ${shlibs:Depends},
+ ${misc:Depends}
+Description: sched_ext schedulers and tools
+ sched_ext is a Linux kernel feature that enables implementing kernel thread
+ schedulers in BPF and loading them dynamically. This package contains the
+ schedulers and the command-line and terminal tools that manage them.

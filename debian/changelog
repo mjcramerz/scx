@@ -1,0 +1,5 @@
+scx (1.1.4-1) unstable; urgency=medium
+
+  * Package the sched-ext schedulers and management tools for Debian.
+
+ -- scx maintainers <scx@packages.debian.org>  Mon, 02 Nov 2026 18:00:00 +0000
